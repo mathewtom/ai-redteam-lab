@@ -1,0 +1,34 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Node (Promptfoo)
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Garak local data (reports are copied to results/)
+.local/
+
+# Sensitive data — never commit scan outputs with model responses
+# Results are .gitignore'd by default. Un-ignore specific sanitized reports.
+results/garak/*.jsonl
+results/pyrit/*.jsonl
+results/deepteam/*.jsonl
+results/fuzzyai/*.jsonl
+
+# Keep HTML summary reports (no raw model output)
+!results/**/*.html
