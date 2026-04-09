@@ -31,6 +31,8 @@ Thumbs.db
 # Sensitive data — never commit scan outputs with model responses
 # Results are .gitignore'd by default. Un-ignore specific sanitized reports.
 results/garak/*.jsonl
+results/promptfoo/*.json
+results/promptfoo/*.jsonl
 results/pyrit/*.jsonl
 results/deepteam/*.jsonl
 results/fuzzyai/*.jsonl
