@@ -6,28 +6,44 @@ The target system treats the LLM as an untrusted component: documents are saniti
 
 ## Target System
 
-SecureRAG-Sentinel is a RAG pipeline built with LangChain, ChromaDB, Presidio, and Ollama (LLaMA 3.1 8B). It has four defensive layers:
+SecureRAG-Sentinel is a RAG pipeline built with LangChain, ChromaDB, Presidio, and Ollama (Llama 3.3 70B). It treats the LLM as an untrusted component and runs a seven-layer defense stack on every query:
 
-| Layer | Defense | Status |
-|-------|---------|--------|
-| 1 | Regex + NER pattern matching (injection scanner, PII detector) | ✅ Deployed |
-| 2 | Embedding similarity to known injection patterns | 🔲 Planned |
-| 3 | Instruction classifier | 🔲 Planned |
-| 4 | Output monitoring | 🔲 Planned |
+| # | Layer | Status |
+|---|-------|--------|
+| 1 | Rate limiter (per-user sliding window) | ✅ Deployed |
+| 2 | Input injection scan (scored regex patterns) | ✅ Deployed |
+| 3 | Embedding similarity scan (cosine match against 100-prompt corpus) | ✅ Deployed |
+| 4 | Access-controlled retrieval (org-chart + dept + classification) | ✅ Deployed |
+| 5 | LLM inference with security prompt template | ✅ Deployed |
+| 6 | Output scanner (regex fast path + Llama Guard 3 1B) | ✅ Deployed |
+| 7 | Classification guard (output-side leak prevention) | ✅ Deployed |
+
+Ingestion-side defenses (NFKC normalization, injection quarantine, PII redaction via Presidio) run before anything reaches the vector store.
 
 Full architecture, OWASP/ATLAS mappings, and threat model are in the [main repo](https://github.com/mathewtom/SecureRAG-Sentinel).
+
+## Threat Model — The E003 Persona
+
+The API hardcodes the requesting user to **E003 (Priya Patel — Software Engineer, low privilege)** server-side. Adversarial tools cannot spoof identity by sending a different `user_id` in the request body. This models the real threat: *an authenticated low-privilege engineer trying to escape their bounds.*
+
+Every test in this lab is run from the E003 perspective. Successful attacks are ones where E003 manages to:
+
+- Read HR records for employees other than themselves
+- Access classified documents from departments E003 isn't a member of (Legal, Finance, Executive)
+- Override the system prompt or extract sanitized content
+- Trigger PII disclosure or classification leaks through the output
 
 ## Tools
 
 Each tool gets its own directory with configs, scripts, and a local README explaining how to run it.
 
-| Tool | Purpose | Directory |
-|------|---------|-----------|
-| [Garak](https://github.com/NVIDIA/garak) (NVIDIA) | Broad vulnerability scanning — prompt injection, DAN, encoding bypasses | `garak/` |
-| [Promptfoo](https://github.com/promptfoo/promptfoo) | Repeatable YAML-based red team tests, CI/CD integration | `promptfoo/` |
-| [PyRIT](https://github.com/Azure/PyRIT) (Microsoft) | Multi-turn adaptive attacks, Crescendo, converter chains | `pyrit/` |
-| [DeepTeam](https://github.com/confident-ai/deepteam) (Confident AI) | Unit-test-style red teaming, LLM-as-judge evaluation | `deepteam/` |
-| [FuzzyAI](https://github.com/cyberark/FuzzyAI) (CyberArk) | Genetic mutation fuzzing, Unicode smuggling, ASCII art attacks | `fuzzyai/` |
+| Tool | Purpose | Directory | Status |
+|------|---------|-----------|--------|
+| [Garak](https://github.com/NVIDIA/garak) (NVIDIA) | Broad vulnerability scanning — prompt injection, DAN, encoding bypasses | [garak/](garak/) | ✅ Active |
+| [Promptfoo](https://github.com/promptfoo/promptfoo) | Eval + red team. Iterative LLM-driven attacks with Claude as attacker/grader. Best fit for access control & RAG-specific abuses. | [promptfoo/](promptfoo/) | ✅ Active |
+| [PyRIT](https://github.com/Azure/PyRIT) (Microsoft) | Multi-turn adaptive attacks, Crescendo, converter chains | [pyrit/](pyrit/) | 🔲 Planned |
+| [DeepTeam](https://github.com/confident-ai/deepteam) (Confident AI) | Unit-test-style red teaming, LLM-as-judge evaluation | [deepteam/](deepteam/) | 🔲 Planned |
+| [FuzzyAI](https://github.com/cyberark/FuzzyAI) (CyberArk) | Genetic mutation fuzzing, Unicode smuggling, ASCII art attacks | [fuzzyai/](fuzzyai/) | 🔲 Planned |
 
 ## Methodology
 
@@ -40,10 +56,13 @@ The delta in Attack Success Rate (ASR) between phases measures the value of each
 
 ## Prerequisites
 
-- [SecureRAG-Sentinel](https://github.com/mathewtom/SecureRAG-Sentinel) cloned and running locally
-- [Ollama](https://ollama.com) with `llama3.1:8b` pulled
+- [SecureRAG-Sentinel](https://github.com/mathewtom/SecureRAG-Sentinel) cloned and running locally on `http://localhost:8000`
+- [Ollama](https://ollama.com) with `llama3.3:70b` and `llama-guard3:1b` pulled
 - Python 3.12+
 - Node.js 18+ (for Promptfoo only)
+- An [Anthropic API key](https://console.anthropic.com) (for Promptfoo's Claude attacker/grader). Garak runs entirely locally and does not need this.
+
+> **Important — rate limiting.** SecureRAG-Sentinel defaults to 10 requests/60s per user. Adversarial scans need hundreds of requests; export `SECURERAG_RATE_MODE=test` (100k/10min) before starting the API or every scan will be 429'd to death.
 
 ## Quick Start
 
