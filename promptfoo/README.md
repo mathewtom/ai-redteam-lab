@@ -51,9 +51,10 @@ SECURERAG_RATE_MODE=test uvicorn src.api:app --host 0.0.0.0 --port 8000
 
 | Command | What it does |
 |---------|--------------|
-| `./run_eval.sh` | RAG quality regression — 20 golden Q&A pairs scored by Claude grader |
-| `./run_redteam_baseline.sh` | Phase 1 redteam against raw Ollama (no defenses). Establishes baseline ASR. |
-| `./run_redteam_pipeline.sh` | Phase 2 redteam against the FastAPI (all 7 defenses active). Measures protected ASR. |
+| `npm run smoke` | Sanity-check that the HTTP provider can talk to `localhost:8000` and that the `transformResponse` correctly handles 200/400/422/429. No Anthropic API calls — runs in seconds. Run this first after any pipeline change. |
+| `npm run eval` | RAG quality regression — golden Q&A pairs scored by Claude grader |
+| `npm run redteam:baseline` | Phase 1 redteam against raw Ollama (no defenses). Establishes baseline ASR. |
+| `npm run redteam:pipeline` | Phase 2 redteam against the FastAPI (all 7 defenses active). Measures protected ASR. |
 
 The delta between baseline ASR and pipeline ASR is the value of the defense stack.
 
@@ -64,19 +65,19 @@ promptfoo/
 ├── README.md                         # this file
 ├── .env.example                      # ANTHROPIC_API_KEY template
 ├── package.json                      # promptfoo version pin
-├── providers/
-│   ├── securerag-pipeline.yaml       # HTTP → localhost:8000 + non-200 handling
-│   └── ollama-baseline.yaml          # raw Llama 3.3 70B for phase 1
 ├── eval/
-│   ├── promptfooconfig.yaml          # base RAG quality regression
+│   ├── promptfooconfig.yaml          # base RAG quality regression (HTTP target)
 │   └── golden_qa.yaml                # ground-truth Q&A from data/raw/
 ├── redteam/
-│   ├── promptfooconfig.yaml          # plugins + strategies + Claude attacker/grader
+│   ├── promptfooconfig.baseline.yaml # phase 1 — raw Ollama (Llama 3.3 70B), no defenses
+│   ├── promptfooconfig.pipeline.yaml # phase 2 — full FastAPI pipeline as E003
 │   └── purpose.md                    # system context for attack generation
 ├── run_eval.sh
 ├── run_redteam_baseline.sh           # phase 1 — raw Ollama
 └── run_redteam_pipeline.sh           # phase 2 — protected API
 ```
+
+Provider configurations are inlined in each `promptfooconfig.yaml` rather than shared across files. Promptfoo doesn't have a clean cross-file import mechanism, so a small amount of duplication beats fragile file-loading workarounds.
 
 ## Plugin selection — mapped to SecureRAG-Sentinel defenses
 
@@ -111,8 +112,20 @@ Local (target API) calls are free — they hit your laptop, not Anthropic.
 ## Security caveats
 
 - The `transformResponse` on the HTTP provider maps **400** (input injection caught), **422** (output flagged), and **429** (rate limited) into synthetic strings like `[BLOCKED_INPUT_INJECTION]`. These are **defensive successes** and graders treat them as such. Without this transform, PromptFoo would mark these as test errors.
+- The transform also concatenates `source_documents` content into the output, so the grader sees what was *retrieved*, not just what was *answered*. This catches the data-leakage failure mode where the LLM verbally refuses but the API still returns confidential chunks in `source_documents`.
 - `.env` is gitignored. Never commit `ANTHROPIC_API_KEY`.
 - Generated reports may contain attack prompts and (during baseline) successful jailbreak outputs. The `results/promptfoo/*.html` file committed to this repo is a **representative, sanitized run**. Raw JSONL reports are gitignored.
+
+### Dependency audit
+
+`npm install promptfoo` pulls in two transitive vulnerabilities at the time of pinning (0.121.3):
+
+| Package | Severity | Status in our use |
+|---------|----------|-------------------|
+| `axios` (via `ibm-cloud-sdk-core`) | Critical (NO_PROXY SSRF, GHSA-3p68-rc4w-qgx5) | **Not exploitable.** We never load the IBM Cloud provider, so this code path is dead. |
+| `@anthropic-ai/sdk` Memory Tool path traversal (GHSA-5474-4w2j-mq4c) | Moderate | **Not exploitable.** We use the Messages API, not the Memory Tool. |
+
+These are noted here so you don't get spooked by `npm audit`. If promptfoo upstream cuts a release that resolves them, bump the pin.
 
 ## Findings
 
