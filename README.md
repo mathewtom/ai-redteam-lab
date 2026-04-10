@@ -39,8 +39,8 @@ Each tool gets its own directory with configs, scripts, and a local README expla
 
 | Tool | Purpose | Directory | Status |
 |------|---------|-----------|--------|
-| [Garak](https://github.com/NVIDIA/garak) (NVIDIA) | Broad vulnerability scanning — prompt injection, DAN, encoding bypasses | [garak/](garak/) | ✅ Active |
-| [Promptfoo](https://github.com/promptfoo/promptfoo) | Eval + red team. Iterative LLM-driven attacks with Claude as attacker/grader. Best fit for access control & RAG-specific abuses. | [promptfoo/](promptfoo/) | ✅ Active |
+| [Garak](https://github.com/NVIDIA/garak) (NVIDIA) | Broad vulnerability scanning — prompt injection, DAN, encoding bypasses | [garak/](garak/) | ✅ Active (V5 scan complete) |
+| [Promptfoo](https://github.com/promptfoo/promptfoo) | Eval + red team. Iterative LLM-driven attacks with Claude as attacker/grader. Best fit for access control & RAG-specific abuses. | [promptfoo/](promptfoo/) | ✅ Active (V1 baseline + pipeline complete) |
 | [PyRIT](https://github.com/Azure/PyRIT) (Microsoft) | Multi-turn adaptive attacks, Crescendo, converter chains | [pyrit/](pyrit/) | 🔲 Planned |
 | [DeepTeam](https://github.com/confident-ai/deepteam) (Confident AI) | Unit-test-style red teaming, LLM-as-judge evaluation | [deepteam/](deepteam/) | 🔲 Planned |
 | [FuzzyAI](https://github.com/cyberark/FuzzyAI) (CyberArk) | Genetic mutation fuzzing, Unicode smuggling, ASCII art attacks | [fuzzyai/](fuzzyai/) | 🔲 Planned |
@@ -62,7 +62,7 @@ The delta in Attack Success Rate (ASR) between phases measures the value of each
 - Node.js 18+ (for Promptfoo only)
 - An [Anthropic API key](https://console.anthropic.com) (for Promptfoo's Claude attacker/grader). Garak runs entirely locally and does not need this.
 
-> **Important — rate limiting.** SecureRAG-Sentinel defaults to 10 requests/60s per user. Adversarial scans need hundreds of requests; export `SECURERAG_RATE_MODE=test` (100k/10min) before starting the API or every scan will be 429'd to death.
+> **Rate limiting.** SecureRAG-Sentinel's `docker-compose.yml` now sets `SECURERAG_RATE_MODE=test` by default, which fully disables the per-user rate limiter for dev / security scanning. (Older Sentinel checkouts defaulted to prod mode at 10 req/60s, which would 429 every scan after the 10th request — pull the latest Sentinel `main` if you see rate-limit-blocked scans.)
 
 ## Quick Start
 
@@ -88,7 +88,17 @@ pip install -U git+https://github.com/NVIDIA/garak.git@main
 
 ## Results
 
-Scan results, HTML reports, and ASR comparisons are tracked in `results/`. See `results/README.md` for the format.
+Scan results, HTML reports, and ASR comparisons are tracked in [`results/`](results/). See `results/README.md` for the format.
+
+### Findings to date
+
+| Tool / scan | Date | Target | Headline ASR | Real ASR (after triage) | Top finding |
+|---|---|---|---:|---:|---|
+| Garak V5 | 2026-04-02 | Sentinel `/query` | 7.9% | ~0.7% | Latent injection (~19% on `LatentInjectionReport`); see [Sentinel `reports/`](https://github.com/mathewtom/SecureRAG-Sentinel/tree/main/reports) |
+| [Promptfoo Baseline V1](results/promptfoo/promptfoo_baseline_v1.md) | 2026-04-09 | Raw Llama 3.3 70B (no defenses) | 28.28% | n/a (raw model upper bound) | `rag-document-exfiltration` 66.7%, `hijacking` 58.3%; iterative attacker is 3× the static strategy |
+| [Promptfoo Pipeline V1](results/promptfoo/promptfoo_pipeline_v1.md) | 2026-04-10 | Sentinel `/query` (full stack) | 55.15% | **~1.2%** | **AWS access keys leaked from `vendor_security_assessment.txt` in 81/165 responses** — Presidio ingestion sanitizer doesn't know AWS-key patterns; Layer 6 output scanner doesn't walk `source_documents[]`. The other 89 "failures" were Claude Haiku grader noise — it could not distinguish E003's own authorized HR record from another employee's after Presidio name redaction. **Lesson learnt: future runs will use Sonnet as grader with an explicit authorization table in the rubric.** |
+
+The promptfoo pipeline run is the first scan in this lab to surface a real, fixable defense gap (the AWS-key leak). It is also the first scan where the headline ASR substantially misrepresented the truth — the [pipeline report](results/promptfoo/promptfoo_pipeline_v1.md) leads with that admission and includes a methodology section on what went wrong with the Haiku grader.
 
 ## Security Mappings
 

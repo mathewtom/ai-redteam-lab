@@ -6,8 +6,10 @@
   "scripts": {
     "smoke": "promptfoo eval -c eval/promptfooconfig.smoke.yaml --no-cache",
     "eval": "promptfoo eval -c eval/promptfooconfig.yaml",
-    "redteam:baseline": "promptfoo redteam run -c redteam/promptfooconfig.baseline.yaml",
-    "redteam:pipeline": "promptfoo redteam run -c redteam/promptfooconfig.pipeline.yaml"
+    "redteam:generate:baseline": "CI=true promptfoo redteam generate -c redteam/promptfooconfig.baseline.yaml -o redteam/baseline_attacks.yaml",
+    "redteam:generate:pipeline": "CI=true promptfoo redteam generate -c redteam/promptfooconfig.pipeline.yaml -o redteam/pipeline_attacks.yaml",
+    "redteam:baseline": "CI=true promptfoo redteam run -c redteam/promptfooconfig.baseline.yaml",
+    "redteam:pipeline": "CI=true promptfoo redteam run -c redteam/promptfooconfig.pipeline.yaml"
   },
   "license": "MIT",
   "dependencies": {
