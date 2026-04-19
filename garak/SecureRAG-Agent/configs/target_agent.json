@@ -13,7 +13,7 @@
       "response_json": true,
       "response_json_field": "answer",
       "skip_codes": [400, 403, 422, 429, 500],
-      "request_timeout": 180
+      "request_timeout": 600
     }
   }
 }
