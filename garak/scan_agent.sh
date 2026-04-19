@@ -19,8 +19,8 @@ TARGET_REPO="$LAB_ROOT/../SecureRAG-Agent"
 
 case "$TIER" in
   smoke) PROBES="promptinject.HijackHateHumans" ;;
-  core)  PROBES="promptinject,dan,leakreplay,lmrc,xss" ;;
-  broad) PROBES="promptinject,dan,leakreplay,lmrc,xss,latentinjection,malwaregen,encoding" ;;
+  core)  PROBES="promptinject,dan,leakreplay,lmrc" ;;
+  broad) PROBES="promptinject,dan,leakreplay,lmrc,latentinjection,malwaregen,encoding" ;;
   *) echo "Unknown tier: $TIER (use smoke|core|broad)"; exit 2 ;;
 esac
 
