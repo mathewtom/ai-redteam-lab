@@ -1,15 +1,17 @@
 {
   "name": "ai-redteam-lab-promptfoo",
-  "version": "0.1.0",
-  "description": "Promptfoo configs for red-teaming SecureRAG-Sentinel from the E003 perspective. See README.md.",
+  "version": "0.2.0",
+  "description": "Promptfoo configs for red-teaming SecureRAG-Sentinel and SecureRAG-Agent from the E003 perspective. See README.md.",
   "private": true,
   "scripts": {
-    "smoke": "promptfoo eval -c eval/promptfooconfig.smoke.yaml --no-cache",
-    "eval": "promptfoo eval -c eval/promptfooconfig.yaml",
-    "redteam:generate:baseline": "CI=true promptfoo redteam generate -c redteam/promptfooconfig.baseline.yaml -o redteam/baseline_attacks.yaml",
-    "redteam:generate:pipeline": "CI=true promptfoo redteam generate -c redteam/promptfooconfig.pipeline.yaml -o redteam/pipeline_attacks.yaml",
-    "redteam:baseline": "CI=true promptfoo redteam run -c redteam/promptfooconfig.baseline.yaml",
-    "redteam:pipeline": "CI=true promptfoo redteam run -c redteam/promptfooconfig.pipeline.yaml"
+    "sentinel:smoke": "promptfoo eval -c SecureRAG-Sentinel/configs/eval/promptfooconfig.smoke.yaml --no-cache",
+    "sentinel:eval": "promptfoo eval -c SecureRAG-Sentinel/configs/eval/promptfooconfig.yaml",
+    "sentinel:redteam:generate:baseline": "CI=true promptfoo redteam generate -c SecureRAG-Sentinel/configs/redteam/promptfooconfig.baseline.yaml -o SecureRAG-Sentinel/configs/redteam/baseline_attacks.yaml",
+    "sentinel:redteam:generate:pipeline": "CI=true promptfoo redteam generate -c SecureRAG-Sentinel/configs/redteam/promptfooconfig.pipeline.yaml -o SecureRAG-Sentinel/configs/redteam/pipeline_attacks.yaml",
+    "sentinel:redteam:baseline": "CI=true promptfoo redteam run -c SecureRAG-Sentinel/configs/redteam/promptfooconfig.baseline.yaml",
+    "sentinel:redteam:pipeline": "CI=true promptfoo redteam run -c SecureRAG-Sentinel/configs/redteam/promptfooconfig.pipeline.yaml",
+    "agent:redteam:generate": "CI=true promptfoo redteam generate -c SecureRAG-Agent/configs/redteam/promptfooconfig.yaml -o SecureRAG-Agent/configs/redteam/agent_attacks.yaml",
+    "agent:redteam": "CI=true promptfoo redteam run -c SecureRAG-Agent/configs/redteam/promptfooconfig.yaml"
   },
   "license": "MIT",
   "dependencies": {

@@ -39,3 +39,6 @@ results/fuzzyai/*.jsonl
 
 # Keep HTML summary reports (no raw model output)
 !results/**/*.html
+
+# Single large Garak report > GitHub's 100 MB per-file limit — kept locally
+garak/SecureRAG-Sentinel/reports/fullscan_v5.report.jsonl

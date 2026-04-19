@@ -1,6 +1,27 @@
 # AI Red Team Lab
 
-Adversarial testing of [SecureRAG-Sentinel](https://github.com/mathewtom/SecureRAG-Sentinel) — a security-hardened RAG pipeline — using open-source red teaming tools.
+Adversarial testing of two security-hardened RAG targets:
+
+- **[SecureRAG-Sentinel](https://github.com/mathewtom/SecureRAG-Sentinel)** — classical RAG with a seven-layer defense stack
+- **[SecureRAG-Agent](https://github.com/mathewtom/SecureRAG-Agent)** — the agentic fork with 7 authorization-guarded tools (LangGraph ReAct)
+
+Configs and reports are partitioned by target under each tool directory:
+
+```
+garak/
+├── SecureRAG-Sentinel/{configs,scripts,reports}/
+└── SecureRAG-Agent/{configs,scripts,reports}/
+promptfoo/
+├── SecureRAG-Sentinel/{configs,reports}/
+└── SecureRAG-Agent/{configs,reports}/
+```
+
+Shared tooling (`garak/.venv`, `promptfoo/node_modules`) lives at the tool
+root. See the per-target READMEs inside each directory for run instructions.
+
+---
+
+## Original context — SecureRAG-Sentinel
 
 The target system treats the LLM as an untrusted component: documents are sanitized before they hit the vector store, access-controlled before they reach the model, and rate-limited at the API boundary. This repo exists to find out where those defenses break.
 

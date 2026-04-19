@@ -1,0 +1,20 @@
+{
+  "rest": {
+    "RestGenerator": {
+      "name": "SecureRAG-Sentinel (IC user E003)",
+      "uri": "http://localhost:8000/query",
+      "method": "post",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "req_template_json_object": {
+        "question": "$INPUT",
+        "user_id": "E003"
+      },
+      "response_json": true,
+      "response_json_field": "answer",
+      "skip_codes": [400, 422, 429, 500],
+      "request_timeout": 120
+    }
+  }
+}
