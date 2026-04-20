@@ -5,18 +5,32 @@
 > against the full SecureRAG-Agent stack at 70B, attribute attack
 > success to specific defense layers via the Phase 4 audit log.
 
-**Status:** Phase 0 complete (2026-04-20). Phase 1 (surrogate + mock
-agent) ready to begin.
+**Status:** Phase 1 code complete (2026-04-20). Parity hard-gate
+pending — requires Llama 3.1 8B weights + running SecureRAG-Agent.
 
-**Phase 0 deliverables landed:**
-- SecureRAG-Agent restructured from `src/*` → `src/securerag_agent/*`
-  package layout (sibling repo, `agentic-pivot` branch). All 406
-  non-integration tests pass. Hatchling build-system added.
-- `autodan/pyproject.toml` with pinned deps + SecureRAG-Agent as
-  editable install (`[tool.uv.sources]`). `uv.lock` committed.
-- All 19 target symbols import cleanly via
-  `scripts/smoke_imports.py`.
-- `.env.example` checked in.
+**Phase 1 deliverables landed:**
+- `surrogate/load_8b.py` — HF Transformers + MPS loader with smoke
+  forward pass.
+- `surrogate/chat_adapter.py` — `Llama3ChatAdapter` (minimal
+  `BaseChatModel` subclass) with `bind_tools` + tool-call output
+  parsing for Llama 3.1's native `<|python_tag|>` format.
+- `surrogate/mock_agent.py` — `build_mock_agent(llm=...)` composes
+  SecureRAG-Agent's real `build_graph` + 7 handler factories + real
+  `MeridianRetriever` over ChromaDB + `AuditSink`.
+- `surrogate/fitness/base.py` — `Fitness` protocol + audit-log
+  inspection helpers.
+- `tests/test_mock_agent.py` — 2 composition tests with a stub LLM,
+  no 8B/ChromaDB required. Passes.
+- `scripts/parity_test.py` — hard-gate 50-query mock↔live comparator
+  (reads live traces from the Phase 4 audit JSONL). Blocked on user
+  bringing up the 8B + live SecureRAG-Agent.
+
+**Phase 0 deliverables (earlier):**
+- SecureRAG-Agent restructured from `src/*` → `src/securerag_agent/*`.
+  All 406 non-integration tests pass. Hatchling build-system added.
+- `autodan/pyproject.toml` + `uv.lock` with editable install of
+  SecureRAG-Agent.
+- `scripts/smoke_imports.py` passes 19/19.
 
 **Plan of record:** §7 below. Phases run strictly sequentially —
 laptop memory cannot host 70B Ollama + 8B HF + ChromaDB + HGA

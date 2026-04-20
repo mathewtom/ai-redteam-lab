@@ -45,6 +45,7 @@ securerag-agent = { path = "../../SecureRAG-Agent", editable = true }
 packages = ["surrogate", "attacks", "transfer"]
 
 [tool.pytest.ini_options]
+pythonpath = ["."]
 markers = [
     "slow: HGA/GCG optimization runs that take >30s",
     "transfer: requires a running SecureRAG-Agent at SECURERAG_AGENT_URL",
