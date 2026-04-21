@@ -42,3 +42,7 @@ results/fuzzyai/*.jsonl
 
 # Single large Garak report > GitHub's 100 MB per-file limit — kept locally
 garak/SecureRAG-Sentinel/reports/fullscan_v5.report.jsonl
+
+# stray chromadb from dev misdirections (CWD-relative bug in
+# SecureRAG-Agent._build_chain; tracked as a follow-up there)
+autodan/data/
