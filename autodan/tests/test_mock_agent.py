@@ -1,4 +1,5 @@
-"""Composition smoke tests for build_mock_agent.
+"""Composition smoke tests for build_mock_agent and the chat adapter's
+Llama 3.1 tool-call parser.
 
 Verifies the mock agent composes without hitting the 8B model, the
 70B Ollama, or a populated ChromaDB — i.e. runs in CI. Real
@@ -17,6 +18,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 
+from surrogate.chat_adapter import _parse_llama3_output
 from surrogate.mock_agent import build_mock_agent
 
 
@@ -125,3 +127,21 @@ def test_build_mock_agent_routes_tool_call_through_auth_node(tmp_path):
     # wiring has changed upstream and mock_agent.py needs to follow.
     assert len(final["tool_call_log"]) == 1
     assert final["tool_call_log"][0]["tool_name"] == "lookup_employee"
+
+
+@pytest.mark.parametrize("stop_token", ["<|eom_id|>", "<|eot_id|>"])
+def test_parse_tool_call_handles_both_terminators(stop_token):
+    """Llama 3.1 uses <|eom_id|> to terminate a tool-call turn (so the
+    agent loop knows to run the tool and come back) and <|eot_id|> for
+    plain-text turns. A tokenizer that ships with `Llama-3.1-8B-Instruct`
+    emits <|eom_id|> for tool calls, so the parser MUST strip it before
+    json.loads — or every adversarial prompt's tool-call emission will
+    be mis-parsed as free-form content and the agent will never dispatch.
+    Regression for the parity-gate failure on 2026-04-20."""
+    payload = '{"name": "lookup_employee", "parameters": {"employee_id": "E003"}}'
+    raw = f"<|python_tag|>{payload}{stop_token}"
+
+    msg = _parse_llama3_output(raw)
+    assert msg.tool_calls, f"no tool_calls parsed from {stop_token} output"
+    assert msg.tool_calls[0]["name"] == "lookup_employee"
+    assert msg.tool_calls[0]["args"] == {"employee_id": "E003"}

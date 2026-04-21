@@ -146,7 +146,9 @@ def _parse_llama3_output(text: str) -> AIMessage:
     If no parseable tool call is found, returns plain content.
     """
     stripped = text
-    for stop_token in ("<|eot_id|>", "<|end_of_text|>"):
+    # <|eom_id|> terminates a tool-call turn (Llama 3.1 spec); <|eot_id|>
+    # terminates a plain-text turn. Strip whichever shows up first.
+    for stop_token in ("<|eom_id|>", "<|eot_id|>", "<|end_of_text|>"):
         if stop_token in stripped:
             stripped = stripped.split(stop_token, 1)[0]
     stripped = stripped.strip()
