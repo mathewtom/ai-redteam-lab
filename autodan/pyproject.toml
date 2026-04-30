@@ -28,6 +28,8 @@ dependencies = [
     # Target system under test — editable install; production internals are
     # the same ones the mock agent composes against the 8B surrogate.
     "securerag-agent",
+    "anthropic>=0.97.0",
+    "python-dotenv>=1.2.2",
 ]
 
 [dependency-groups]
