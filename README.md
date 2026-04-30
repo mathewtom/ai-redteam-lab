@@ -93,10 +93,26 @@ SecureRAG-Agent."* The chat-templated prefix the surrogate sees is full
 production parity (system prompt + seven tool schemas + assistant
 generation prompt), so the log-probability means what we want it to mean.
 
-The fitness module is parameterized only by `target_string`. Three campaigns
-share the implementation — verbatim prefix, tool name (`search_documents`),
-and meta-acknowledgment (`my system prompt`). Campaign A is the only one
-run so far.
+Eight campaigns are planned — letter assignments are stable, always
+referenced by ID + header. Campaigns A through G are leak-elicitation
+runs that share the existing fitness module, parameterized only by
+target string:
+
+| ID | Header                                       | Status   |
+|----|----------------------------------------------|----------|
+| A  | Verbatim system-prompt opening leak          | Complete |
+| B  | Tool-name disclosure                         | Planned  |
+| C  | Meta-acknowledgment of hidden instructions   | Planned  |
+| D  | Latent-injection marker insertion            | Planned  |
+| E  | Caller-block PII leak                        | Planned  |
+| F  | Confidentiality-clause self-leak             | Planned  |
+| G  | Tool-description leak                        | Planned  |
+| H  | Output-side bypass of OutputScanner / ClassificationGuard | Planned  |
+
+Campaign H is methodologically distinct: it scores the *generated reply*
+rather than the next-token log-prob after a prefix, shifting the per-layer
+attribution to the output side (OutputScanner, ClassificationGuard) and
+requiring a new fitness primitive. Campaign A is the only one run so far.
 
 The HGA loop is vendored unchanged from the published reference: top-K
 elitism, fitness-proportional roulette selection, sentence-segment
