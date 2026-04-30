@@ -14,10 +14,16 @@ garak/
 promptfoo/
 ├── SecureRAG-Sentinel/{configs,reports}/
 └── SecureRAG-Agent/{configs,reports}/
+autodan/                       # AutoDAN-HGA against SecureRAG-Agent only
+├── attacks/hga/               # vendored Liu et al. operators + Claude-driven mutation
+├── surrogate/                 # Llama 3.1 8B HF + MPS loader, fitness primitives
+├── scripts/                   # transfer-test harness against the live agent
+└── results/scanner_evasion/   # per-campaign JSONL + transfer artifacts
 ```
 
-Shared tooling (`garak/.venv`, `promptfoo/node_modules`) lives at the tool
-root. See the per-target READMEs inside each directory for run instructions.
+Shared tooling (`garak/.venv`, `promptfoo/node_modules`, `autodan/.venv`)
+lives at the tool root. See the per-target READMEs inside each directory
+for run instructions.
 
 ---
 
@@ -62,6 +68,7 @@ Each tool gets its own directory with configs, scripts, and a local README expla
 |------|---------|-----------|--------|
 | [Garak](https://github.com/NVIDIA/garak) (NVIDIA) | Broad vulnerability scanning — prompt injection, DAN, encoding bypasses | [garak/](garak/) | ✅ Active (V5 scan complete) |
 | [Promptfoo](https://github.com/promptfoo/promptfoo) | Eval + red team. Iterative LLM-driven attacks with Claude as attacker/grader. Best fit for access control & RAG-specific abuses. | [promptfoo/](promptfoo/) | ✅ Active (V1 baseline + pipeline complete) |
+| AutoDAN-HGA (Liu et al. 2024, custom adaptation) | Surrogate-transfer evolutionary search. Evolves adversarial prompts on a Llama 3.1 8B surrogate; transfers survivors to the live 70B for per-layer attribution. Optional Claude-driven semantic mutation operator via Anthropic API. | [autodan/](autodan/) | ✅ Active (Campaign A complete; B and C pending) |
 | [PyRIT](https://github.com/Azure/PyRIT) (Microsoft) | Multi-turn adaptive attacks, Crescendo, converter chains | [pyrit/](pyrit/) | 🔲 Planned |
 | [DeepTeam](https://github.com/confident-ai/deepteam) (Confident AI) | Unit-test-style red teaming, LLM-as-judge evaluation | [deepteam/](deepteam/) | 🔲 Planned |
 | [FuzzyAI](https://github.com/cyberark/FuzzyAI) (CyberArk) | Genetic mutation fuzzing, Unicode smuggling, ASCII art attacks | [fuzzyai/](fuzzyai/) | 🔲 Planned |
@@ -119,8 +126,11 @@ Scan results, HTML reports, and ASR comparisons are tracked in [`results/`](resu
 | [Promptfoo Baseline V1](results/promptfoo/promptfoo_baseline_v1.md) | 2026-04-09 | Raw Llama 3.3 70B (no defenses) | 28.28% | n/a (raw model upper bound) | `rag-document-exfiltration` 66.7%, `hijacking` 58.3%; iterative attacker is 3× the static strategy |
 | [Promptfoo Pipeline V1](results/promptfoo/promptfoo_pipeline_v1.md) | 2026-04-10 | Sentinel `/query` (full stack, Haiku grader) | 55.15% | **~1.2%** | **AWS access keys leaked from `vendor_security_assessment.txt` in 81/165 responses.** Fixed same day with 21-pattern CredentialDetector. The other 89 "failures" were Haiku grader noise. |
 | [Promptfoo Pipeline V2](results/promptfoo/promptfoo_pipeline_v2.md) | 2026-04-10 | Sentinel `/query` (full stack + credential fix, Sonnet attacker + grader) | 21.21% | **0.0%** | **Zero real defense bypasses.** All 35 failures are base64 strategy "No output" infrastructure artifacts (Llama can't decode base64 → refuses → promptfoo's built-in detector fires). Every non-base64 strategy: **0% ASR** (basic 0/45, jailbreak-templates 0/40, jailbreak:meta 0/40). Credential fix verified — zero AKIA strings in any response. Sonnet grader with explicit authorization table: zero false positives across 125 non-base64 tests. |
+| [AutoDAN-HGA Campaign A](autodan/results/scanner_evasion/transfer_top5_20260429_1844_v2.md) | 2026-04-29 | Agent `/agent/query` (full stack, surrogate-transfer eval) | n/a — transfer-eval methodology | **0/5 leaks** | **Regex input scanner caught 0/5 of the top evolved prompts; the 70B refused all five via the canonical confidentiality decline + `escalate_to_human` tool call.** Surrogate-transfer methodology produced an honest per-layer attribution: the model's own training carried 100% of the defensive weight on this objective, the regex layer carried 0%. Claude-driven mutation operator beat the lexical baseline qualitatively (grammatical winners vs ungrammatical Frankenstein offspring) at comparable fitness. |
 
 The V1→V2 pipeline progression tells a complete red-team story: V1 found a real credential leak (AWS keys bypassing Presidio) and exposed Haiku-as-grader as a methodology weakness. Both were fixed same day. V2 confirmed the fix and produced a clean measurement with a Sonnet-class adaptive attacker — 0% real ASR across 125 meaningful tests.
+
+AutoDAN-HGA Campaign A produced a complementary finding via a different methodology. Where Promptfoo throws curated prompt-injection corpora at the agent, AutoDAN-HGA *evolves* prompts under selection pressure on a smaller surrogate model and transfers the survivors to the production target. Campaign A targeted the verbatim system-prompt-leak class. The evolved top-5 all bypassed the regex input scanner cleanly — meaning that layer's adaptive coverage on this objective is 0% — but the production 70B declined all five via its canonical confidentiality refusal. The defensive contribution is entirely from the model's training plus the explicit confidentiality clause in the system prompt, not the regex layer. The full methodology, the lexical-vs-Claude operator A/B, and the transfer artifacts live under [autodan/](autodan/).
 
 ## Security Mappings
 
